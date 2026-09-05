@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8" />
+    <title>Visualizador de Tiles 8x8 & Organizador de Paleta</title>
+    <style>
+        body {
+            background-color: #121212;
+            color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        h1 {
+            color: #ffffff;
+            margin-bottom: 20px;
+        }
+        .controls {
+            display: flex;
+            gap: 15px;
+            margin-bottom: 20px;
+            background: #1e1e1e;
+            padding: 15px 25px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .btn-input {
+            background: #2563eb;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            display: inline-block;
+        }
+        input[type="file"] {
+            display: none;
+        }
+        button {
+            background: #059669;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            border: none;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .palette-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: #1e1e1e;
+            padding: 15px 20px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            margin-bottom: 25px;
+        }
+        .palette-instruction {
+            font-size: 12px;
+            color: #aaa;
+            margin-bottom: 10px;
+            font-family: monospace;
+        }
+        .palette-preview {
+            display: flex;
+            gap: 6px;
+            background: #111;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #444;
+        }
+        .swatch-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 4px;
+        }
+        .palette-swatch {
+            width: 32px;
+            height: 32px;
+            border-radius: 4px;
+            border: 2px solid #222;
+            cursor: grab;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-family: monospace;
+            font-weight: bold;
+            color: rgba(255,255,255,0.9);
+            text-shadow: 1px 1px 2px #000;
+            user-select: none;
+            transition: transform 0.1s, border-color 0.1s;
+        }
+        .palette-swatch:active {
+            cursor: grabbing;
+        }
+        .palette-swatch:hover {
+            border-color: #2563eb;
+            transform: scale(1.1);
+        }
+        .swatch-index {
+            font-size: 11px;
+            font-family: monospace;
+            color: #888;
+        }
+        .workspace {
+            display: flex;
+            gap: 40px;
+            width: 100%;
+            max-width: 1200px;
+            justify-content: center;
+            align-items: flex-start;
+            flex-wrap: wrap;
+        }
+        .preview-frame {
+            background: #1e1e1e;
+            border: 2px solid #2563eb;
+            border-radius: 8px;
+            padding: 20px;
+            position: sticky;
+            top: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-width: 200px;
+        }
+        .preview-title {
+            font-size: 14px;
+            font-weight: bold;
+            color: #2563eb;
+            margin-bottom: 15px;
+            font-family: monospace;
+        }
+        .grid-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+            gap: 10px;
+            flex-grow: 1;
+            background: #1a1a1a;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #333;
+            max-height: 60vh;
+            overflow-y: auto;
+        }
+        .tile-card {
+            background: #262626;
+            border: 1px solid #444;
+            border-radius: 4px;
+            padding: 5px;
+            cursor: pointer;
+            transition: transform 0.1s, border-color 0.1s;
+        }
+        .tile-card:hover {
+            border-color: #2563eb;
+            transform: scale(1.05);
+        }
+        .tile-matrix-mini {
+            display: grid;
+            grid-template-columns: repeat(8, 8px);
+            grid-template-rows: repeat(8, 8px);
+        }
+        .pixel-mini {
+            width: 8px;
+            height: 8px;
+        }
+        .tile-matrix-large {
+            display: grid;
+            grid-template-columns: repeat(8, 32px);
+            grid-template-rows: repeat(8, 32px);
+            border: 2px solid #444;
+        }
+        .pixel-large {
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 11px;
+            font-family: monospace;
+            font-weight: bold;
+            color: rgba(255,255,255,0.9);
+            text-shadow: 1px 1px 2px #000;
+        }
+    </style>
+</head>
+<body>
+<h1>Visualizador de Tiles 8x8 & Organizador de Paleta</h1>
+
+<div class="controls">
+    <label class="btn-input" style="background:#ec4899;">
+        Importar PNG (.png)
+        <input type="file" id="png-file" accept=".png" />
+    </label>
+    <label class="btn-input">
+        Importar BMP (.bmp)
+        <input type="file" id="bmp-file" accept=".bmp" />
+    </label>
+    <label class="btn-input" style="background:#059669;">
+        Importar Bruto (.bin/.chr)
+        <input type="file" id="bin-file" accept=".bin,.chr" />
+    </label>
+    <label class="btn-input" style="background:#d97706;">
+        Importar Raw (.raw)
+        <input type="file" id="raw-file" accept=".raw" />
+    </label>
+    <button id="export-tiles" style="background:#10b981;">Exportar Tiles (.bin)</button>
+    <button id="export-pal" style="background:#8b5cf6;">Exportar Paleta (.pal)</button>
+</div>
+
+<div class="palette-container">
+    <div class="palette-instruction">🖐️ ARRASTE AS CORES PARA REORDENAR A PALETA (OS TILES RE-MAPEARÃO AUTOMATICAMENTE)</div>
+    <div class="palette-preview" id="palette-bar"></div>
+</div>
+
+<div class="workspace">
+    <div class="grid-container" id="output-grid"></div>
+
+    <div class="preview-frame">
+        <div class="preview-title" id="frame-title">INSPECTOR (PASSE O MOUSE)</div>
+        <div class="tile-matrix-large" id="frame-matrix"></div>
+    </div>
+</div>
+
+<script>
+const container = document.getElementById("output-grid");
+const frameTitle = document.getElementById("frame-title");
+const frameMatrix = document.getElementById("frame-matrix");
+const paletteBar = document.getElementById("palette-bar");
+
+// Paleta padrão de 16 cores
+let colorPalette = [
+    "#000000", "#0000AA", "#00AA00", "#00AAAA", "#AA0000", "#AA00AA", "#AA5500", "#AAAAAA",
+    "#555555", "#5555FF", "#55FF55", "#55FFFF", "#FF5555", "#FF55FF", "#FFFF55", "#FFFFFF"
+];
+
+let allTilesData = []; // Matriz global de pixels de todos os tiles
+let draggedColorIndex = null;
+
+// Funções de conversão para canais de cores do Mega Drive (0x0, 0x2, 0x4, 0x6, 0x8, 0x0A, 0x0C, 0x0E)
+function toMegaDriveChannel(value) {
+    const step = Math.round((value / 255) * 7);
+    return step * 2; // Retorna 0, 2, 4, 6, 8, 10, 12 ou 14
+}
+
+function mdChannelTo8Bit(mdStep) {
+    return Math.round((mdStep / 14) * 255);
+}
+
+// Converte RGB normal em Hexadecimal arredondado para os valores do Mega Drive
+function rgbToMDHex(r, g, b) {
+    const r_md = toMegaDriveChannel(r);
+    const g_md = toMegaDriveChannel(g);
+    const b_md = toMegaDriveChannel(b);
+
+    const r8 = mdChannelTo8Bit(r_md).toString(16).padStart(2, '0');
+    const g8 = mdChannelTo8Bit(g_md).toString(16).padStart(2, '0');
+    const b8 = mdChannelTo8Bit(b_md).toString(16).padStart(2, '0');
+
+    return `#${r8}${g8}${b8}`;
+}
+
+// Renderiza a interface da paleta com suporte a Drag & Drop
+function renderPaletteUI() {
+    paletteBar.innerHTML = "";
+    colorPalette.forEach((hex, index) => {
+        const wrapper = document.createElement("div");
+        wrapper.className = "swatch-wrapper";
+
+        const swatch = document.createElement("div");
+        swatch.className = "palette-swatch";
+        swatch.style.backgroundColor = hex;
+        swatch.draggable = true;
+        swatch.dataset.index = index;
+
+        const label = document.createElement("span");
+        label.className = "swatch-index";
+        label.innerText = `$${index.toString(16).toUpperCase()}`;
+
+        // Eventos de Drag and Drop
+        swatch.addEventListener("dragstart", (e) => {
+            draggedColorIndex = index;
+            e.dataTransfer.effectAllowed = "move";
+            swatch.style.opacity = "0.4";
+        });
+
+        swatch.addEventListener("dragend", () => {
+            swatch.style.opacity = "1";
+            draggedColorIndex = null;
+        });
+
+        swatch.addEventListener("dragover", (e) => {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = "move";
+        });
+
+        swatch.addEventListener("drop", (e) => {
+            e.preventDefault();
+            const targetIndex = parseInt(swatch.dataset.index);
+            if (draggedColorIndex !== null && draggedColorIndex !== targetIndex) {
+                swapColorsAndRemap(draggedColorIndex, targetIndex);
+            }
+        });
+
+        wrapper.appendChild(swatch);
+        wrapper.appendChild(label);
+        paletteBar.appendChild(wrapper);
+    });
+}
+renderPaletteUI();
+
+// Troca duas cores na paleta e re-mapeia os pixels de todos os tiles
+function swapColorsAndRemap(idx1, idx2) {
+    const tempColor = colorPalette[idx1];
+    colorPalette[idx1] = colorPalette[idx2];
+    colorPalette[idx2] = tempColor;
+
+    for (let t = 0; t < allTilesData.length; t++) {
+        for (let p = 0; p < allTilesData[t].length; p++) {
+            if (allTilesData[t][p] === idx1) {
+                allTilesData[t][p] = idx2;
+            } else if (allTilesData[t][p] === idx2) {
+                allTilesData[t][p] = idx1;
+            }
+        }
+    }
+
+    renderPaletteUI();
+    renderAllTilesFromData();
+}
+
+// Re-renderiza os tiles na tela
+function renderAllTilesFromData() {
+    container.innerHTML = "";
+    allTilesData.forEach((tileData, t) => {
+        const card = document.createElement("div");
+        card.className = "tile-card";
+
+        const matrixDiv = document.createElement("div");
+        matrixDiv.className = "tile-matrix-mini";
+
+        tileData.forEach(colorIndex => {
+            const pixelDiv = document.createElement("div");
+            pixelDiv.className = "pixel-mini";
+            pixelDiv.style.backgroundColor = colorPalette[colorIndex] || "#000";
+            matrixDiv.appendChild(pixelDiv);
+        });
+
+        card.appendChild(matrixDiv);
+        card.addEventListener('mouseenter', () => updateFrame(`TILE ${t}`, tileData));
+        container.appendChild(card);
+    });
+}
+
+// Inicializa o inspector
+for(let i=0; i<64; i++) {
+    const p = document.createElement("div");
+    p.className = "pixel-large";
+    p.style.backgroundColor = "#1a1a1a";
+    frameMatrix.appendChild(p);
+}
+
+// Eventos de Importação
+document.getElementById('png-file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    processPNG(file);
+});
+
+document.getElementById('bmp-file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+        processBMP(new Uint8Array(evt.target.result));
+    };
+    reader.readAsArrayBuffer(file);
+});
+
+document.getElementById('bin-file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+        processBIN(new Uint8Array(evt.target.result));
+    };
+    reader.readAsArrayBuffer(file);
+});
+
+document.getElementById('raw-file').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(evt) {
+        processBIN(new Uint8Array(evt.target.result));
+    };
+    reader.readAsArrayBuffer(file);
+});
+
+// Processa Imagens PNG
+function processPNG(file) {
+    const reader = new FileReader();
+    reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+            const canvas = document.createElement("canvas");
+            canvas.width = img.width;
+            canvas.height = img.height;
+            const ctx = canvas.getContext("2d");
+            ctx.drawImage(img, 0, 0);
+
+            const imgData = ctx.getImageData(0, 0, img.width, img.height);
+            const pixels = imgData.data;
+
+            // O Índice 0 no VDP é obrigatoriamente a cor transparente do fundo.
+            let extractedColors = ["#000000"]; // Cor de fundo do slot 0
+            let colorMap = new Map();
+
+            // Extrai cores sólidas começando a partir do ÍNDICE 1
+            for (let i = 0; i < pixels.length; i += 4) {
+                const alpha = pixels[i + 3];
+                if (alpha < 128) continue; // Pula pixels transparentes
+
+                const r = pixels[i];
+                const g = pixels[i + 1];
+                const b = pixels[i + 2];
+                const mdHex = rgbToMDHex(r, g, b);
+
+                if (!colorMap.has(mdHex)) {
+                    if (extractedColors.length < 16) {
+                        extractedColors.push(mdHex);
+                        // Define o índice na paleta (começa no 1)
+                        colorMap.set(mdHex, extractedColors.length - 1);
+                    }
+                }
+            }
+
+            // Preenche até 16 slots caso a imagem use menos cores
+            colorPalette = [...extractedColors];
+            while (colorPalette.length < 16) {
+                colorPalette.push("#000000");
+            }
+            renderPaletteUI();
+
+            // Monta a matriz de pixels
+            let pixelMatrix = [];
+            for (let y = 0; y < img.height; y++) {
+                let row = [];
+                for (let x = 0; x < img.width; x++) {
+                    const idx = (y * img.width + x) * 4;
+                    const alpha = pixels[idx + 3];
+
+                    let paletteIndex = 0; // Transparente por padrão (Índice 0)
+                    if (alpha >= 128) {
+                        const r = pixels[idx];
+                        const g = pixels[idx + 1];
+                        const b = pixels[idx + 2];
+                        const mdHex = rgbToMDHex(r, g, b);
+
+                        paletteIndex = colorMap.get(mdHex);
+                        if (paletteIndex === undefined) paletteIndex = 1; 
+                    }
+                    row.push(paletteIndex);
+                }
+                pixelMatrix.push(row);
+            }
+
+            allTilesData = [];
+            renderTilesFromBMP(pixelMatrix, img.width, img.height);
+        };
+        img.src = event.target.result;
+    };
+    reader.readAsDataURL(file);
+}
+
+// Processa BMP
+function processBMP(bytes) {
+    container.innerHTML = "";
+    allTilesData = [];
+
+    const width = bytes[18] | (bytes[19] << 8) | (bytes[20] << 16) | (bytes[21] << 24);
+    const height = bytes[22] | (bytes[23] << 8) | (bytes[24] << 16) | (bytes[25] << 24);
+    const pixelOffset = bytes[10] | (bytes[11] << 8) | (bytes[12] << 16) | (bytes[13] << 24);
+    const headerSize = bytes[14] | (bytes[15] << 8) | (bytes[16] << 16) | (bytes[17] << 24);
+    
+    // Extrai e converte paleta do BMP para Mega Drive
+    const paletteStart = 14 + headerSize;
+    if (pixelOffset > paletteStart) {
+        const numColors = Math.min(16, Math.floor((pixelOffset - paletteStart) / 4));
+        for (let c = 0; c < numColors; c++) {
+            const idx = paletteStart + (c * 4);
+            const b = bytes[idx];
+            const g = bytes[idx + 1];
+            const r = bytes[idx + 2];
+            colorPalette[c] = rgbToMDHex(r, g, b);
+        }
+        renderPaletteUI();
+    }
+
+    const rowBytesCount = Math.floor(((width * 4 + 31) / 32)) * 4;
+    let pixelMatrix = [];
+
+    for (let y = 0; y < height; y++) {
+        const rowStart = pixelOffset + (y * rowBytesCount);
+        let rowPixels = [];
+        for (let b = 0; b < rowBytesCount; b++) {
+            if (rowStart + b >= bytes.length) break;
+            const byteValue = bytes[rowStart + b];
+            rowPixels.push((byteValue >> 4) & 0x0F, byteValue & 0x0F);
+        }
+        pixelMatrix.push(rowPixels.slice(0, width));
+    }
+    pixelMatrix.reverse();
+
+    renderTilesFromBMP(pixelMatrix, width, height);
+}
+
+// Processa BIN / RAW
+function processBIN(bytes) {
+    allTilesData = [];
+    const bytesPerTile = 32;
+    const totalTiles = Math.floor(bytes.length / bytesPerTile);
+
+    for (let t = 0; t < totalTiles; t++) {
+        const tileOffset = t * bytesPerTile;
+        const tileData = [];
+
+        for (let i = 0; i < bytesPerTile; i++) {
+            const byteValue = bytes[tileOffset + i];
+            tileData.push((byteValue >> 4) & 0x0F, byteValue & 0x0F);
+        }
+        allTilesData.push(tileData);
+    }
+    renderAllTilesFromData();
+}
+
+// Renderiza tiles de uma matriz de pixels (PNG/BMP)
+function renderTilesFromBMP(pixelMatrix, width, height) {
+    const tileSize = 8;
+    const tilesX = Math.ceil(width / tileSize);
+    const tilesY = Math.ceil(height / tileSize);
+
+    for (let ty = 0; ty < tilesY; ty++) {
+        for (let tx = 0; tx < tilesX; tx++) {
+            const tileData = [];
+            for (let localY = 0; localY < tileSize; localY++) {
+                for (let localX = 0; localX < tileSize; localX++) {
+                    const globalY = (ty * tileSize) + localY;
+                    const globalX = (tx * tileSize) + localX;
+
+                    let colorIndex = 0;
+                    if (globalY < height && globalX < width) {
+                        colorIndex = pixelMatrix[globalY][globalX];
+                    }
+                    tileData.push(colorIndex);
+                }
+            }
+            allTilesData.push(tileData);
+        }
+    }
+    renderAllTilesFromData();
+}
+
+// Inspector lateral
+function updateFrame(title, tileData) {
+    frameTitle.innerText = title;
+    frameMatrix.innerHTML = "";
+    tileData.forEach(colorIndex => {
+        const pixelDiv = document.createElement("div");
+        pixelDiv.className = "pixel-large";
+        pixelDiv.style.backgroundColor = colorPalette[colorIndex] || "#000";
+        pixelDiv.innerText = colorIndex.toString(16).toUpperCase();
+        frameMatrix.appendChild(pixelDiv);
+    });
+}
+
+// Exporta Tiles (.bin 4bpp)
+document.getElementById('export-tiles').addEventListener('click', () => {
+    if (allTilesData.length === 0) {
+        alert("Nenhum tile carregado.");
+        return;
+    }
+    const bytesPerTile = 32;
+    const buffer = new Uint8Array(allTilesData.length * bytesPerTile);
+
+    for (let i = 0; i < allTilesData.length; i++) {
+        const tile = allTilesData[i];
+        for (let j = 0; j < bytesPerTile; j++) {
+            const p1 = tile[j * 2] & 0x0F;
+            const p2 = tile[j * 2 + 1] & 0x0F;
+            buffer[i * bytesPerTile + j] = (p1 << 4) | p2;
+        }
+    }
+
+    downloadBuffer(buffer, "todos_tiles.bin");
+});
+
+// Exporta Paleta (.pal Mega Drive)
+document.getElementById('export-pal').addEventListener('click', () => {
+    const buffer = new Uint8Array(32);
+
+    for (let c = 0; c < 16; c++) {
+        const hex = colorPalette[c] || "#000000";
+        const r = parseInt(hex.substring(1, 3), 16) || 0;
+        const g = parseInt(hex.substring(3, 5), 16) || 0;
+        const b = parseInt(hex.substring(5, 7), 16) || 0;
+
+        const r_md = toMegaDriveChannel(r);
+        const g_md = toMegaDriveChannel(g);
+        const b_md = toMegaDriveChannel(b);
+
+        // Word CRAM Big-Endian (0000 BBB0 GGG0 RRR0)
+        buffer[c * 2]     = b_md & 0x0E;
+        buffer[c * 2 + 1] = ((g_md & 0x0E) << 4) | (r_md & 0x0E);
+    }
+
+    downloadBuffer(buffer, "paleta.pal");
+});
+
+// Download genérico
+function downloadBuffer(buffer, filename) {
+    const blob = new Blob([buffer], { type: "application/octet-stream" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+}
+</script>
+</body>
+</html>
