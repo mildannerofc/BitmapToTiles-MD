@@ -1,0 +1,25 @@
+{
+  "name": "bitmap-to-tiles-md",
+  "version": "1.0.0",
+  "description": "A image converter for Sega Genesis tiles and sprites. Limited to Mega Drive format constraints.",
+  "main": "index.html",
+  "scripts": {
+    "start": "open index.html"
+  },
+  "keywords": [
+    "sega",
+    "genesis",
+    "mega-drive",
+    "tiles",
+    "sprites",
+    "image-converter",
+    "bitmap"
+  ],
+  "author": "mildannerofc",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/mildannerofc/BitmapToTiles-MD.git"
+  },
+  "homepage": "https://mildannerofc.github.io/BitmapToTiles-MD/"
+}
